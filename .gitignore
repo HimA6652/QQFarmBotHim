@@ -1,0 +1,35 @@
+# 依赖与构建产物
+node_modules/
+web/dist/
+/runtime/
+
+# 运行数据与日志（本机状态，不入库）
+data/
+logs/
+panel/run/
+panel/logs/
+web/stats.html
+
+# 私有运行时（体积大或含本机状态）
+snowluma/
+fetcher/napcat/
+fetcher/qqpath.txt
+
+# 本机 MITM 根证书（取码器首次运行自动生成，勿入库）
+tools/mitm-ca.cer
+
+# 临时与备份文件
+*.log
+*.pid
+*.bak
+*.bak-*
+*.orig
+*.rej
+*.swp
+*.tmp
+*~
+.DS_Store
+
+# 凭据与本地配置
+.env
+.env.*
