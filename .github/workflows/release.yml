@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 校验 tag 与版本号一致
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(python3 -c "import json;print(json.load(open('core/package.json'))['version'])")"
+          echo "tag=$VERSION package=$PKG_VERSION"
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::tag 与 core/package.json 版本不一致"
+            exit 1
+          fi
+
+      - name: 从 CHANGELOG 生成说明
+        run: |
+          set -euo pipefail
+          python3 tools/release-notes.py "${GITHUB_REF_NAME}" > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::error::Release 说明为空"
+            exit 1
+          fi
+          echo "----- RELEASE NOTES -----"
+          cat RELEASE_NOTES.md
+
+      - name: 建 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "QQFarmBotHim ${GITHUB_REF_NAME}" \
+            --notes-file RELEASE_NOTES.md \
+            --verify-tag
