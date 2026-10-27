@@ -1,197 +1,103 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QQ农场助手 · 控制面板</title>
-<style>
-  :root{
-    --bg:#f5f7fa; --card:#fff; --line:#e5e9f0; --text:#1f2937; --muted:#6b7280;
-    --primary:#2563eb; --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
-  .wrap{max-width:1040px;margin:0 auto;padding:22px 18px 40px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
-  h1{font-size:19px;margin:0;font-weight:700}
-  .sub{color:var(--muted);font-size:12px;margin-top:3px}
-  .grid{display:grid;gap:14px}
-  @media(min-width:860px){ .grid.two{grid-template-columns:1fr 1fr} }
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-  .card h2{font-size:15px;margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:8px}
-  .dot{width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block;flex:none}
-  .dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(22,163,74,.15)}
-  .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
-  .row:last-child{border-bottom:0}
-  .k{color:var(--muted);flex:none}
-  .v{text-align:right;word-break:break-all}
-  code{font-family:var(--mono);font-size:12px;background:#f1f5f9;border-radius:5px;padding:1px 6px}
-  .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:8px;padding:7px 13px;cursor:pointer;transition:.15s}
-  button:hover{border-color:#c7d2fe;background:#f8fafc}
-  button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-  button.primary:hover{background:#1d4ed8}
-  button.danger{color:var(--bad);border-color:#fecaca}
-  button.danger:hover{background:#fef2f2}
-  .p0bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px;border:1px dashed var(--line);border-radius:10px;background:#fbfdff}
-  .p0state{font-weight:700}
-  .log{margin-top:10px;background:#0f172a;color:#cbd5e1;border-radius:8px;padding:10px 12px;max-height:240px;overflow:auto;font-family:var(--mono);font-size:11.5px;line-height:1.5;white-space:pre-wrap}
-  .hint{color:var(--muted);font-size:12px;margin-top:8px}
-  .steps{margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:12.5px}
-  .steps li{margin:3px 0}
-  .badge{font-size:11px;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;border:1px solid #e0e7ff}
-  .codes{display:flex;flex-direction:column;gap:6px;margin-top:6px}
-  .code-item{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-  .empty{color:var(--muted);font-size:12.5px;padding:6px 0}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div>
+  <header class="top">
+    <div class="brand">
+      <span class="dot" id="healthDot"></span>
       <h1>QQ农场助手 · 控制面板</h1>
-      <div class="sub">主程序 :3007 · 抓码 API :8450 · 抓码代理 :18000 · 面板 :3100</div>
+      <span class="tag" id="versionTag">控制面板</span>
     </div>
-    <div><span class="badge" id="hostBadge">无 QQ 协议端依赖</span></div>
+    <div class="meta" id="hostMeta">正在读取状态…</div>
   </header>
 
   <div class="grid">
-    <div class="card">
-      <h2>P0 启动流程</h2>
-      <div class="p0bar">
-        <div class="p0state" id="p0State">检查中…</div>
-        <div style="color:var(--muted);font-size:12px" id="p0Hint">主程序负责农场自动化；抓码服务可选启用</div>
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>NapCat 协议端</h2>
+          <p class="sub">负责 QQ 登录与扫码收码，WebUI 仅本机可访问</p>
+        </div>
+        <span class="badge" id="napcatBadge">已停止</span>
       </div>
-      <div class="btns">
-        <button class="primary" id="btnP0">一键启动 P0</button>
-        <button class="danger" id="btnStopAll">停止全部</button>
-        <button id="btnOpenMain">打开主程序</button>
+      <dl class="kv">
+        <div><dt>端口</dt><dd id="napcatPort">—</dd></div>
+        <div><dt>PID</dt><dd id="napcatPid">—</dd></div>
+        <div><dt>运行时长</dt><dd id="napcatUptime">—</dd></div>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" type="button" data-act="napcat-start">启动 NapCat</button>
+        <button class="btn danger" type="button" data-act="napcat-stop">停止 NapCat</button>
       </div>
-      <ol class="steps">
-        <li>首次使用：管理员运行 <code>tools\抓码-开启.ps1</code>（装 CA 证书 + 设系统代理）</li>
-        <li>重启 QQ → 打开「QQ农场」小程序，保持 10 秒</li>
-        <li>码会出现在下方「码池」，主程序「新增账号」→ 抓包登录即可</li>
-      </ol>
-      <div class="hint">抓码代理只解密 <code>*.nqf.qq.com</code> 等目标域，其它流量原样透传。</div>
-    </div>
-
-    <div class="card">
-      <h2><span class="dot" id="dotCap"></span>取码器（本机 MITM）</h2>
-      <div class="row"><span class="k">状态</span><span class="v" id="capState">—</span></div>
-      <div class="row"><span class="k">代理地址</span><span class="v" id="capAddr">—</span></div>
-      <div class="row"><span class="k">CA 证书</span><span class="v" id="capCert">—</span></div>
-      <div class="row"><span class="k">会话剩余</span><span class="v" id="capTtl">—</span></div>
-      <div class="row"><span class="k">码池</span><span class="v" id="capCount">—</span></div>
-      <div class="codes" id="capCodes"></div>
-      <div class="btns">
-        <button id="btnCapStart">启动取码器</button>
-        <button id="btnCapRenew">续期会话</button>
-        <button class="danger" id="btnCapStop">停止取码器</button>
+      <p class="hint" id="tokenHint">令牌仅在本机访问时显示。</p>
+      <div class="actions">
+        <button class="btn small" type="button" id="copyToken" disabled>复制 WebUI 令牌</button>
       </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <h2><span class="dot" id="dotMain"></span>主程序</h2>
-      <div class="row"><span class="k">状态</span><span class="v" id="mainState">—</span></div>
-      <div class="row"><span class="k">后台地址</span><span class="v"><a href="http://127.0.0.1:3007" target="_blank">http://127.0.0.1:3007</a></span></div>
-      <div class="row"><span class="k">取码方式</span><span class="v">本机抓码 / 手动填码 / 微信扫码</span></div>
-      <div class="btns">
-        <button id="btnMainStart">启动主程序</button>
-        <button class="danger" id="btnMainStop">停止主程序</button>
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>主程序</h2>
+          <p class="sub">账号管理、自动化与系统配置</p>
+        </div>
+        <span class="badge" id="farmBadge">已停止</span>
       </div>
-      <div class="hint">主程序不依赖 OneBot，用 Code 直连农场网关。</div>
-    </div>
+      <dl class="kv">
+        <div><dt>PID</dt><dd id="farmPid">—</dd></div>
+        <div><dt>运行时长</dt><dd id="farmUptime">—</dd></div>
+        <div><dt>界面</dt><dd><a id="farmLink" href="http://127.0.0.1:3007/" target="_blank" rel="noopener">打开 3007 界面</a></dd></div>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" type="button" data-act="farm-start">启动主程序</button>
+        <button class="btn danger" type="button" data-act="farm-stop">停止主程序</button>
+        <button class="btn" type="button" data-act="farm-restart">重启主程序</button>
+      </div>
+      <p class="hint">冷启动需加载物品与配置，约 10~60 秒；启动后在主程序界面用 QQ 扫码登录。</p>
+    </section>
 
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>账号</h2>
+          <p class="sub">来自主程序的账号列表</p>
+        </div>
+        <span class="badge" id="accountBadge">0 个</span>
+      </div>
+      <ul class="accounts" id="accountList"></ul>
+    </section>
 
-    <div class="card">
-      <h2>抓码服务日志（最近 200 行）</h2>
-      <div class="log" id="logBox">（暂无日志）</div>
-    </div>
+    <section class="card logs">
+      <div class="card-head">
+        <div>
+          <h2>日志</h2>
+          <p class="sub">面板动作 / 主程序运行日志 / NapCat 输出</p>
+        </div>
+        <span class="meta" id="logFile">—</span>
+      </div>
+      <div class="tabs" id="logTabs">
+        <button class="tab active" type="button" data-source="panel">面板</button>
+        <button class="tab" type="button" data-source="core">主程序</button>
+        <button class="tab" type="button" data-source="napcat">NapCat</button>
+      </div>
+      <div class="logfilters" id="logFilters"></div>
+      <div class="loglist" id="logList"></div>
+      <pre class="logbox" id="logBox" hidden></pre>
+    </section>
   </div>
+
+  <footer class="foot">
+    <div id="footInfo">—</div>
+    <button class="btn ghost small" type="button" id="stopPanel">关闭面板</button>
+  </footer>
 </div>
-
-<script>
-const $ = (id) => document.getElementById(id);
-
-async function api(path, opts) {
-  const r = await fetch(path, Object.assign({ cache: 'no-store' }, opts || {}));
-  return await r.json();
-}
-async function act(action) {
-  try {
-    await api('/api/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
-    });
-  } catch (e) { console.error(e); }
-  setTimeout(refresh, 400);
-}
-function setDot(dotEl, stateEl, running, text) {
-  dotEl.className = 'dot ' + (running ? 'on' : '');
-  stateEl.textContent = text;
-  stateEl.style.color = running ? 'var(--ok)' : 'var(--muted)';
-}
-
-async function refresh() {
-  let d;
-  try { d = await api('/api/status'); } catch (e) { return; }
-  if (!d || !d.ok) return;
-
-  const cap = d.capture || {};
-  const main = d.main || {};
-
-  setDot($('dotCap'), $('capState'), cap.running,
-    cap.running ? `运行中 · API :${cap.apiPort} · 代理 :${cap.proxyPort}` : '已停止');
-  $('capAddr').innerHTML = (cap.addresses && cap.addresses.length)
-    ? cap.addresses.map(a => `<code>${a}:${cap.proxyPort}</code>`).join(' ')
-    : '—';
-  $('capCert').innerHTML = cap.running
-    ? `<a href="${cap.certUrl}" target="_blank">下载 CA 证书</a>`
-    : '—';
-  $('capTtl').textContent = cap.remainingSec > 0 ? `${cap.remainingSec} 秒` : '—';
-  $('capCount').textContent = `${cap.codeCount || 0} 条`;
-
-  const box = $('capCodes');
-  if (cap.codes && cap.codes.length) {
-    box.innerHTML = cap.codes.map(c =>
-      `<div class="code-item"><span><code>${c.masked}</code></span><span>${c.openid ? 'openid ' + c.openid : ''} ${c.ver ? '· ' + c.ver : ''}</span></div>`
-    ).join('');
-  } else {
-    box.innerHTML = '<div class="empty">（暂无 Code：手机/本机打开农场后自动出现）</div>';
-  }
-
-  setDot($('dotMain'), $('mainState'), main.running,
-    main.running ? `运行中 · :${main.port}` : '已停止');
-
-  const p0 = d.p0 || {};
-  $('p0State').textContent = p0.ready ? 'P0 已就绪' : '未启动';
-  $('p0State').style.color = p0.ready ? 'var(--ok)' : 'var(--warn)';
-
-  const log = await api('/api/capture-log').catch(() => null);
-  if (log && log.lines) {
-    const tail = log.lines.slice(-200).join('\n').trim();
-    const b = $('logBox');
-    const atBottom = b.scrollTop + b.clientHeight >= b.scrollHeight - 30;
-    b.textContent = tail || '（暂无日志）';
-    if (atBottom) b.scrollTop = b.scrollHeight;
-  }
-
-}
-
-$('btnP0').onclick = () => act('startp0');
-$('btnStopAll').onclick = () => act('stopp0');
-$('btnCapStart').onclick = () => act('startcapture');
-$('btnCapStop').onclick = () => act('stopcapture');
-$('btnCapRenew').onclick = () => act('renewcapture');
-$('btnMainStart').onclick = () => act('start');
-$('btnMainStop').onclick = () => act('stop');
-$('btnOpenMain').onclick = () => window.open('http://127.0.0.1:3007', '_blank');
-
-
-refresh();
-setInterval(refresh, 3000);
-</script>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
 </body>
 </html>

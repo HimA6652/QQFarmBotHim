@@ -1,0 +1,9 @@
+{
+    "versionCheck":  {
+                         "notifyPopup":  true,
+                         "notifiedSha":  {
+                                             "bot":  "651ff5a1"
+                                         },
+                         "intervalMinutes":  30
+                     }
+}
