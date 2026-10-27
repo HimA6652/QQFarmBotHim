@@ -1,11 +1,11 @@
 ﻿<#
 ============================================================================
- QQ农场助手 · 取码器版 · 控制面板（Web）
+ QQ农场助手 · 控制面板（Web）
 ============================================================================
  端口   面板 3100 / 主程序 3007 / 抓码 API 8450 / 抓码代理 18000
 
  设计要点
-   - 面板只做三件事：启停主程序、启停取码器（本机 MITM）、把 P0 串起来
+   - 面板只做三件事：启停主程序、启停抓码服务（本机 MITM）、把 P0 串起来
    - 取码器 = 主程序自带的 capture 内核（独立进程模式），抓到 code 供账号使用
    - 不含任何 QQ 协议端（NapCat / SnowLuma 均已移除）
    - 动作交给子进程执行，避免阻塞 HTTP 线程；只接受私网来源
@@ -40,12 +40,6 @@ $MainPidFile = Join-Path $RunDir 'farm.pid'
 $CapPidFile = Join-Path $RunDir 'capture.pid'
 $PanelLog = Join-Path $LogDir 'panel.log'
 
-# ---- 取码器（注入式）----
-$FetcherPort = 8460
-$FetcherScript = Join-Path $Root 'fetcher\code-fetcher.mjs'
-$FetcherPidFile = Join-Path $RunDir 'fetcher.pid'
-$FetcherLog = Join-Path $LogDir 'fetcher.log'
-$LocalTokenFile = Join-Path $DataDir 'local-api-token.txt'
 
 # ---------------------------------------------------------------- 基础工具
 function Write-Line {
@@ -272,148 +266,6 @@ function Get-CaptureStatus {
     }
 }
 
-# ---------------------------------------------------------------- 取码器（注入式）
-function Invoke-FetcherApi {
-    param([string]$Method, [string]$Path)
-    try {
-        return Invoke-RestMethod -Method $Method -Uri "http://127.0.0.1:$FetcherPort$Path" -TimeoutSec 8
-    }
-    catch { return $null }
-}
-
-function Get-FetcherState {
-    $running = Test-PortOpen -Port $FetcherPort
-    if (-not $running) { return [ordered]@{ running = $false; phase = 'idle' } }
-    $s = Invoke-FetcherApi -Method 'GET' -Path '/state'
-    if (-not $s) { return [ordered]@{ running = $true; phase = 'unknown' } }
-    return [ordered]@{
-        running    = $true
-        phase      = [string]$s.phase
-        qr         = [string]$s.qr
-        qrPng      = [string]$s.qrPng
-        uin        = [string]$s.uin
-        nickname   = [string]$s.nickname
-        codeMasked = $(if ($s.code) { (Mask-Code ([string]$s.code)) } else { '' })
-        error      = [string]$s.error
-        elapsedSec = [int]$s.elapsedSec
-    }
-}
-
-function Get-QqPath {
-    # 解析 QQ.exe：注册表 -> 常见路径 -> fetcher\qqpath.txt
-    try {
-        $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\QQ'
-        $item = Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue
-        if ($item -and $item.UninstallString) {
-            $dir = Split-Path -Parent ($item.UninstallString.Trim('"'))
-            $exe = Join-Path $dir 'QQ.exe'
-            if (Test-Path -LiteralPath $exe) { return $exe }
-        }
-    }
-    catch { }
-    foreach ($candidate in @('D:\ProgramData\QQ\QQ.exe', (Join-Path $env:ProgramFiles 'Tencent\QQNT\QQ.exe'))) {
-        if (Test-Path -LiteralPath $candidate) { return $candidate }
-    }
-    $qqFile = Join-Path $Root 'fetcher\qqpath.txt'
-    if (Test-Path -LiteralPath $qqFile) {
-        $p = (Get-Content -LiteralPath $qqFile -Raw).Trim()
-        if ($p -and (Test-Path -LiteralPath $p)) { return $p }
-    }
-    return ''
-}
-
-function Start-Fetcher {
-    param([string]$Mode = 'new', [string]$AccountId = '', [int]$TimeoutSec = 180)
-    if (Test-PortOpen -Port $FetcherPort) {
-        Write-Line "  [取码器] 已有会话在跑（$FetcherPort），请先取消。" 'Yellow'
-        return $false
-    }
-    if (-not (Test-Path -LiteralPath $FetcherScript)) {
-        Write-Line "  [取码器] 缺少 $FetcherScript" 'Red'
-        return $false
-    }
-    $nodeExe = Join-Path $Root 'runtime\node\node.exe'
-    if (-not (Test-Path -LiteralPath $nodeExe)) {
-        $nodeExe = (Get-Command node.exe -ErrorAction SilentlyContinue).Source
-        if (-not $nodeExe) { Write-Line '  [取码器] 找不到 node.exe' 'Red'; return $false }
-    }
-    try {
-        $qq = Get-QqPath
-        $args = @($FetcherScript, '--port', $FetcherPort, '--timeout', $TimeoutSec, '--mode', $Mode)
-        if ($qq) { $args += @('--qq', $qq) }
-        else { Write-Line '  [取码器] 未找到 QQ.exe，请把路径写进 fetcher\qqpath.txt' 'Yellow' }
-        $p = Start-Process -FilePath $nodeExe -ArgumentList $args -WorkingDirectory $Root -WindowStyle Hidden -PassThru
-        Set-Content -LiteralPath $FetcherPidFile -Value "$($p.Id)|0" -Encoding ascii
-        Write-Line "  [取码器] 已启动会话（pid $($p.Id)，模式 $Mode）" 'Green'
-        return $true
-    }
-    catch {
-        Write-Line "  [取码器] 启动失败：$($_.Exception.Message)" 'Red'
-        return $false
-    }
-}
-
-function Stop-Fetcher {
-    # 先让取码器自己收尾（它会杀 QQ 进程树），再兜底杀进程
-    [void](Invoke-FetcherApi -Method 'POST' -Path '/cancel')
-    Start-Sleep -Milliseconds 800
-    if (Test-Path -LiteralPath $FetcherPidFile) {
-        $rec = (Get-Content -LiteralPath $FetcherPidFile -Raw).Trim()
-        $parts = $rec -split '\|'
-        $targetPid = [int]$parts[0]
-        if ($targetPid) { try { Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue } catch { } }
-        Remove-Item -LiteralPath $FetcherPidFile -Force -ErrorAction SilentlyContinue
-    }
-    $owner = Get-PortOwner -Port $FetcherPort
-    if ($owner) { try { Stop-Process -Id $owner -Force -ErrorAction SilentlyContinue } catch { } }
-    Write-Line "  [取码器] 会话已结束（端口 $FetcherPort $(if (Test-PortOpen -Port $FetcherPort) {'仍占用'} else {'已释放'})）" 'Green'
-}
-
-function Invoke-ApplyCode {
-    <#  把取码器拿到的 code 交给主程序：新建账号或更新失效账号。  #>
-    param([string]$Mode = 'new', [string]$AccountId = '')
-    $s = Invoke-FetcherApi -Method 'GET' -Path '/state'
-    if (-not $s -or -not $s.code) {
-        Write-Line '  [取码器] 还没有可用的 code。' 'Yellow'
-        return $false
-    }
-    $token = ''
-    if (Test-Path -LiteralPath $LocalTokenFile) { $token = (Get-Content -LiteralPath $LocalTokenFile -Raw).Trim() }
-    if (-not $token) {
-        Write-Line '  [取码器] 读不到主程序的本机令牌（data\local-api-token.txt），主程序可能没启动过。' 'Red'
-        return $false
-    }
-    if (-not (Test-PortOpen -Port $MainPort)) {
-        Write-Line '  [取码器] 主程序未运行（3007），无法写入账号。' 'Red'
-        return $false
-    }
-    $payload = @{
-        token     = $token
-        mode      = $(if ($Mode -eq 'refresh') { 'refresh' } else { 'new' })
-        code      = [string]$s.code
-        platform  = 'qq'
-        uin       = [string]$s.uin
-        name      = [string]$s.nickname
-        accountId = $AccountId
-    } | ConvertTo-Json -Compress
-    try {
-        $res = Invoke-RestMethod -Method 'POST' -Uri "http://127.0.0.1:$MainPort/api/local/code-account" `
-            -ContentType 'application/json; charset=utf-8' `
-            -Body ([System.Text.Encoding]::UTF8.GetBytes($payload)) -TimeoutSec 20
-        if ($res.ok) {
-            $d = $res.data
-            Write-Line ("  [取码器] 已写入账号 #{0}（{1}）并触发启动" -f $d.accountId, $(if ($d.created) { '新建' } else { '更新' })) 'Green'
-            return $true
-        }
-        Write-Line ("  [取码器] 主程序拒绝：{0}" -f $res.error) 'Red'
-        return $false
-    }
-    catch {
-        Write-Line "  [取码器] 写入账号失败：$($_.Exception.Message)" 'Red'
-        return $false
-    }
-}
-
 # ---------------------------------------------------------------- 主程序
 function Start-FarmService {
     $launcher = Join-Path $Root 'launch.ps1'
@@ -507,7 +359,6 @@ function Get-StatusObject {
         ports     = [ordered]@{ panel = $WebPort; main = $MainPort; captureApi = $CapApiPort; captureProxy = $CapProxyPort }
         main      = [ordered]@{ running = $mainRunning; port = $MainPort; url = "http://127.0.0.1:$MainPort" }
         capture   = $cap
-        fetcher   = (Get-FetcherState)
         p0        = [ordered]@{ ready = $mainRunning }
     }
 }
@@ -636,32 +487,6 @@ function Start-WebPanel {
                     '/api/capture-log' {
                         $lines = Read-TailLines -Path $CapLog -Lines 200
                         Send-HttpJson -Stream $stream -Object ([ordered]@{ ok = $true; file = $CapLog; lines = @($lines) })
-                    }
-                    '/api/code/state' {
-                        Send-HttpJson -Stream $stream -Object ([ordered]@{ ok = $true; fetcher = (Get-FetcherState) })
-                    }
-                    '/api/code/start' {
-                        if ($req.Method -ne 'POST') { Write-HttpText -Stream $stream -Status 405 -Text 'method not allowed'; break }
-                        $b = @{}
-                        try { $b = ConvertFrom-Json -InputObject $req.Body } catch { }
-                        $mode = if ($b -and $b.mode) { [string]$b.mode } else { 'new' }
-                        $accId = if ($b -and $b.accountId) { [string]$b.accountId } else { '' }
-                        $ok = Start-Fetcher -Mode $mode -AccountId $accId
-                        Send-HttpJson -Stream $stream -Status $(if ($ok) { 202 } else { 409 }) -Object ([ordered]@{ ok = $ok })
-                    }
-                    '/api/code/cancel' {
-                        if ($req.Method -ne 'POST') { Write-HttpText -Stream $stream -Status 405 -Text 'method not allowed'; break }
-                        Stop-Fetcher
-                        Send-HttpJson -Stream $stream -Status 202 -Object ([ordered]@{ ok = $true })
-                    }
-                    '/api/code/apply' {
-                        if ($req.Method -ne 'POST') { Write-HttpText -Stream $stream -Status 405 -Text 'method not allowed'; break }
-                        $b = @{}
-                        try { $b = ConvertFrom-Json -InputObject $req.Body } catch { }
-                        $mode = if ($b -and $b.mode) { [string]$b.mode } else { 'new' }
-                        $accId = if ($b -and $b.accountId) { [string]$b.accountId } else { '' }
-                        $ok = Invoke-ApplyCode -Mode $mode -AccountId $accId
-                        Send-HttpJson -Stream $stream -Status $(if ($ok) { 200 } else { 400 }) -Object ([ordered]@{ ok = $ok })
                     }
                     '/api/action' {
                         if ($req.Method -ne 'POST') { Write-HttpText -Stream $stream -Status 405 -Text 'method not allowed'; break }

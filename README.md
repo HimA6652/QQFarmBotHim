@@ -24,7 +24,6 @@ QQFarmBotHim/                  源码工程
 │     └─ proto/                游戏 protobuf（含 player-login / solarterms / globalscene）
 ├─ web/                        主程序前端（Vue 3 + Vite，pnpm build:web）
 ├─ panel/                      控制面板（panel.ps1 + web）
-├─ fetcher/                    本机取码器（MITM 方案，**当前未启用**，仅作功能储备）
 ├─ tools/                      抓码开关脚本 + CA 证书
 └─ docs/                       文档索引（现行方案与功能储备）
 ```
@@ -37,7 +36,7 @@ QQFarmBotHim/                  源码工程
 | 控制面板 | 3100 | 0.0.0.0 | 启停主程序/NapCat、看日志 |
 | NapCat WebUI | 6099 | 127.0.0.1 | 仅本机，令牌由面板下发 |
 | NapCat OneBot HTTP | 3000 | 127.0.0.1 | 带 token |
-| 取码器 API/代理（未启用） | 8450 / 18000 | 本机/局域网 | 需 `--capture` 或 fetcher 显式启动 |
+| 抓包服务 API/代理（可选） | 8450 / 18000 | 本机/局域网 | 由 `capture-server.js` 显式启动 |
 
 ## 启动
 
@@ -52,7 +51,6 @@ QQFarmBotHim/                  源码工程
 | QQ 扫码登录 | 面板/主程序界面发起，NapCat 收码（当前主用） |
 | 微信扫码 | 微信账号走 `getFarmCode`，全自动 |
 | 手动填码 / 抓包登录 | 粘贴 Code，或抓包服务采集 |
-| 本机取码器 | `fetcher/` + `controllers/local-code-routes.js`，**未接入 admin.js，需要时再启用** |
 
 ## 开发与发布
 

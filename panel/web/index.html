@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>QQ农场助手 · 取码器版 · 控制面板</title>
+<title>QQ农场助手 · 控制面板</title>
 <style>
   :root{
     --bg:#f5f7fa; --card:#fff; --line:#e5e9f0; --text:#1f2937; --muted:#6b7280;
@@ -50,7 +50,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>QQ农场助手 · 取码器版</h1>
+      <h1>QQ农场助手 · 控制面板</h1>
       <div class="sub">主程序 :3007 · 抓码 API :8450 · 抓码代理 :18000 · 面板 :3100</div>
     </div>
     <div><span class="badge" id="hostBadge">无 QQ 协议端依赖</span></div>
@@ -61,7 +61,7 @@
       <h2>P0 启动流程</h2>
       <div class="p0bar">
         <div class="p0state" id="p0State">检查中…</div>
-        <div style="color:var(--muted);font-size:12px" id="p0Hint">取码器负责抓 Code；主程序负责农场自动化</div>
+        <div style="color:var(--muted);font-size:12px" id="p0Hint">主程序负责农场自动化；抓码服务可选启用</div>
       </div>
       <div class="btns">
         <button class="primary" id="btnP0">一键启动 P0</button>
@@ -103,28 +103,6 @@
       <div class="hint">主程序不依赖 OneBot，用 Code 直连农场网关。</div>
     </div>
 
-    <div class="card">
-      <h2><span class="dot" id="dotFetch"></span>扫码取码器（注入式）</h2>
-      <div class="row"><span class="k">状态</span><span class="v" id="fetchState">—</span></div>
-      <div class="row"><span class="k">账号模式</span><span class="v">
-        <select id="fetchMode" style="font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #d1d5db">
-          <option value="new">新增账号</option>
-          <option value="refresh">重登失效账号</option>
-        </select>
-        <input id="fetchAccountId" placeholder="账号ID(可空)" style="width:110px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #d1d5db;margin-left:6px" />
-      </span></div>
-      <div class="row"><span class="k">当前阶段</span><span class="v" id="fetchPhase">—</span></div>
-      <div class="row"><span class="k">Code</span><span class="v" id="fetchCode">—</span></div>
-      <div style="display:flex;justify-content:center;margin-top:10px">
-        <img id="fetchQr" alt="QQ 登录二维码" style="display:none;width:220px;height:220px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px" />
-      </div>
-      <div class="hint" id="fetchHint">取码器会临时拉起一个 QQ 进程：扫码 → 自动取码 → 进程自行退出。</div>
-      <div class="btns">
-        <button class="primary" id="btnFetchStart">开始扫码取码</button>
-        <button id="btnFetchApply" disabled>写入/更新账号</button>
-        <button class="danger" id="btnFetchCancel">取消并结束</button>
-      </div>
-    </div>
 
     <div class="card">
       <h2>抓码服务日志（最近 200 行）</h2>
@@ -200,28 +178,6 @@ async function refresh() {
     if (atBottom) b.scrollTop = b.scrollHeight;
   }
 
-  // ---- 扫码取码器 ----
-  const f = d.fetcher || {};
-  const phaseText = {
-    idle: '未启动', booting: '正在拉起 QQ…', qr: '等待扫码',
-    scanning: '已出码，等待确认', logged: '已登录，正在取码', code: '已取到 Code',
-    done: '已完成', error: '失败', cancelled: '已取消',
-  }[f.phase] || (f.phase || '—');
-  $('dotFetch').className = 'dot ' + (f.running ? 'on' : '');
-  $('fetchState').textContent = f.running
-    ? `会话进行中 · ${f.elapsedSec || 0}s`
-    : '空闲';
-  $('fetchPhase').textContent = phaseText + (f.error ? '：' + f.error : '');
-  $('fetchPhase').style.color = f.phase === 'error' ? 'var(--bad)' : (f.phase === 'code' || f.phase === 'done' ? 'var(--ok)' : 'var(--text)');
-  $('fetchCode').innerHTML = f.codeMasked ? `<code>${f.codeMasked}</code>` : '—';
-  const img = $('fetchQr');
-  if (f.qrPng) { img.src = f.qrPng; img.style.display = 'block'; }
-  else { img.style.display = 'none'; img.removeAttribute('src'); }
-  $('btnFetchApply').disabled = !(f.phase === 'code' || f.phase === 'done');
-  if (f.running && f.uin) $('fetchHint').textContent = `已登录 QQ：${f.uin}${f.nickname ? ' / ' + f.nickname : ''}`;
-  else if (f.phase === 'qr') $('fetchHint').textContent = '用手机 QQ 扫描上方二维码并确认登录。';
-  else if (f.phase === 'error') $('fetchHint').textContent = f.error || '取码失败，可重试。';
-  else $('fetchHint').textContent = '取码器会临时拉起一个 QQ 进程：扫码 → 自动取码 → 进程自行退出。';
 }
 
 $('btnP0').onclick = () => act('startp0');
@@ -233,36 +189,6 @@ $('btnMainStart').onclick = () => act('start');
 $('btnMainStop').onclick = () => act('stop');
 $('btnOpenMain').onclick = () => window.open('http://127.0.0.1:3007', '_blank');
 
-// ---- 扫码取码器 ----
-async function codeCall(path, body) {
-  try {
-    const r = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {}),
-    });
-    return await r.json();
-  } catch (e) { return { ok: false, error: String(e) }; }
-}
-$('btnFetchStart').onclick = async () => {
-  const mode = $('fetchMode').value;
-  const accountId = $('fetchAccountId').value.trim();
-  $('btnFetchStart').disabled = true;
-  const r = await codeCall('/api/code/start', { mode, accountId });
-  if (!r.ok) $('fetchHint').textContent = '已有会话在跑，或取码器启动失败。';
-  setTimeout(() => { $('btnFetchStart').disabled = false; refresh(); }, 800);
-};
-$('btnFetchCancel').onclick = async () => {
-  await codeCall('/api/code/cancel');
-  setTimeout(refresh, 500);
-};
-$('btnFetchApply').onclick = async () => {
-  const mode = $('fetchMode').value;
-  const accountId = $('fetchAccountId').value.trim();
-  const r = await codeCall('/api/code/apply', { mode, accountId });
-  $('fetchHint').textContent = r.ok ? '已写入账号并触发启动，查看主程序。' : '写入失败：请看面板日志。';
-  setTimeout(refresh, 800);
-};
 
 refresh();
 setInterval(refresh, 3000);
