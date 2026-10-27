@@ -1,102 +1,106 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QQ农场助手 · 控制面板</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
+
   <header class="top">
     <div class="brand">
       <span class="dot" id="healthDot"></span>
-      <h1>QQ农场助手 · 控制面板</h1>
+      <h1>QQ农场助手</h1>
       <span class="tag" id="versionTag">控制面板</span>
     </div>
-    <div class="meta" id="hostMeta">正在读取状态…</div>
+    <div class="meta" id="hostMeta">正在连接…</div>
   </header>
 
-  <div class="grid">
-    <section class="card">
-      <div class="card-head">
-        <div>
-          <h2>NapCat 协议端</h2>
-          <p class="sub">负责 QQ 登录与扫码收码，WebUI 仅本机可访问</p>
-        </div>
-        <span class="badge" id="napcatBadge">已停止</span>
-      </div>
-      <dl class="kv">
-        <div><dt>端口</dt><dd id="napcatPort">—</dd></div>
-        <div><dt>PID</dt><dd id="napcatPid">—</dd></div>
-        <div><dt>运行时长</dt><dd id="napcatUptime">—</dd></div>
-      </dl>
-      <div class="actions">
-        <button class="btn primary" type="button" data-act="napcat-start">启动 NapCat</button>
-        <button class="btn danger" type="button" data-act="napcat-stop">停止 NapCat</button>
-      </div>
-      <p class="hint" id="tokenHint">令牌仅在本机访问时显示。</p>
-      <div class="actions">
-        <button class="btn small" type="button" id="copyToken" disabled>复制 WebUI 令牌</button>
-      </div>
-    </section>
+  <section class="grid">
 
-    <section class="card">
+    <article class="card" id="cardFarm">
       <div class="card-head">
         <div>
           <h2>主程序</h2>
-          <p class="sub">账号管理、自动化与系统配置</p>
+          <p class="sub">农场网关连接 · 账号调度 · 活动任务</p>
         </div>
-        <span class="badge" id="farmBadge">已停止</span>
+        <span class="badge" id="farmBadge">读取中</span>
       </div>
       <dl class="kv">
+        <div><dt>端口</dt><dd>3007</dd></div>
         <div><dt>PID</dt><dd id="farmPid">—</dd></div>
-        <div><dt>运行时长</dt><dd id="farmUptime">—</dd></div>
-        <div><dt>界面</dt><dd><a id="farmLink" href="http://127.0.0.1:3007/" target="_blank" rel="noopener">打开 3007 界面</a></dd></div>
+        <div><dt>已运行</dt><dd id="farmUptime">—</dd></div>
       </dl>
       <div class="actions">
-        <button class="btn primary" type="button" data-act="farm-start">启动主程序</button>
-        <button class="btn danger" type="button" data-act="farm-stop">停止主程序</button>
-        <button class="btn" type="button" data-act="farm-restart">重启主程序</button>
+        <button class="btn primary" data-act="farm-start">启动</button>
+        <button class="btn" data-act="farm-restart">重启</button>
+        <button class="btn danger" data-act="farm-stop">停止</button>
+        <a class="btn link" id="farmLink" href="#" target="_blank" rel="noopener">打开主界面</a>
       </div>
-      <p class="hint">冷启动需加载物品与配置，约 10~60 秒；启动后在主程序界面用 QQ 扫码登录。</p>
-    </section>
+    </article>
 
-    <section class="card">
+    <article class="card" id="cardNapcat">
+      <div class="card-head">
+        <div>
+          <h2>NapCat 协议端</h2>
+          <p class="sub">QQ 登录 / 扫码取码 · 仅本机监听</p>
+        </div>
+        <span class="badge" id="napcatBadge">读取中</span>
+      </div>
+      <dl class="kv">
+        <div><dt>WebUI</dt><dd id="napcatPort">6099</dd></div>
+        <div><dt>PID</dt><dd id="napcatPid">—</dd></div>
+        <div><dt>已运行</dt><dd id="napcatUptime">—</dd></div>
+      </dl>
+      <div class="actions">
+        <button class="btn primary" data-act="napcat-start">启动</button>
+        <button class="btn danger" data-act="napcat-stop">停止</button>
+        <button class="btn ghost" id="copyToken" disabled>复制本机令牌</button>
+      </div>
+      <p class="hint" id="tokenHint">令牌仅在本机访问时显示。</p>
+    </article>
+
+    <article class="card" id="cardAccounts">
       <div class="card-head">
         <div>
           <h2>账号</h2>
-          <p class="sub">来自主程序的账号列表</p>
+          <p class="sub">登录状态请在主界面查看</p>
         </div>
-        <span class="badge" id="accountBadge">0 个</span>
+        <span class="badge neutral" id="accountBadge">0 个</span>
       </div>
-      <ul class="accounts" id="accountList"></ul>
-    </section>
-  </div>
+      <ul class="accounts" id="accountList">
+        <li class="empty">暂无账号</li>
+      </ul>
+    </article>
+
+  </section>
 
   <section class="card logs">
-      <div class="card-head">
-        <div>
-          <h2>日志</h2>
-          <p class="sub">面板动作 / 主程序运行日志 / NapCat 输出</p>
-        </div>
-        <span class="meta" id="logFile">—</span>
+    <div class="card-head">
+      <div>
+        <h2>运行日志</h2>
+        <p class="sub" id="logFile">—</p>
       </div>
       <div class="tabs" id="logTabs">
-        <button class="tab active" type="button" data-source="panel">面板</button>
-        <button class="tab" type="button" data-source="core">主程序</button>
-        <button class="tab" type="button" data-source="napcat">NapCat</button>
+        <button class="tab active" data-source="panel">面板</button>
+        <button class="tab" data-source="core">主程序</button>
+        <button class="tab" data-source="napcat">NapCat</button>
       </div>
-      <div class="logfilters" id="logFilters"></div>
-      <div class="loglist" id="logList"></div>
-      <pre class="logbox" id="logBox" hidden></pre>
+    </div>
+    <div class="logfilters" id="logFilters" hidden></div>
+    <pre class="logbox" id="logBox">加载中…</pre>
+    <div class="logbox loglist" id="logList" hidden></div>
   </section>
 
   <footer class="foot">
-    <div id="footInfo">—</div>
-    <button class="btn ghost small" type="button" id="stopPanel">关闭面板</button>
+    <span id="footInfo">局域网内可直接访问本页；NapCat 端口未对外开放。</span>
+    <button class="btn ghost small" id="stopPanel">关闭面板服务</button>
   </footer>
+
 </div>
+
 <div class="toast" id="toast"></div>
 <script src="app.js"></script>
 </body>

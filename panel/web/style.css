@@ -211,7 +211,6 @@ body {
 
 .loglist {
   height: 320px;
-  overflow: auto;
   white-space: normal;
   word-break: normal;
 }
