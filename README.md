@@ -26,7 +26,7 @@ QQFarmBotHim/                  源码工程
 ├─ panel/                      控制面板（panel.ps1 + web）
 ├─ fetcher/                    本机取码器（MITM 方案，**当前未启用**，仅作功能储备）
 ├─ tools/                      抓码开关脚本 + CA 证书
-└─ docs/                       历史方案文档（取码器时代）
+└─ docs/                       文档索引；过时方案归档在 docs/archive/
 ```
 
 ## 端口
