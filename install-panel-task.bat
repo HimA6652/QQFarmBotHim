@@ -4,7 +4,7 @@ title QQFarmBotHim - install elevated panel task
 cd /d "%~dp0"
 
 echo   Registering scheduled task "QQFarmBotHim-Panel" (runs the panel elevated).
-echo   After this, starting/stopping SnowLuma from the panel will NOT pop UAC.
+echo   After this, starting/stopping NapCat from the panel will NOT pop UAC.
 echo.
 
 net session >nul 2>&1
@@ -14,7 +14,8 @@ if errorlevel 1 (
     exit /b 0
 )
 
-schtasks /create /tn "QQFarmBotHim-Panel" /tr "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File D:\ProgramData\QQFarmBotHim\panel\panel.ps1 -Action web -WebPort 3100" /sc onlogon /rl highest /f
+rem 说明：用 %~dp0 定位脚本所在目录，避免硬编码部署路径；部署路径含空格时请自行加引号。
+schtasks /create /tn "QQFarmBotHim-Panel" /tr "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File %~dp0panel\panel.ps1 -Action web -WebPort 3100" /sc onlogon /rl highest /f
 if errorlevel 1 (
     echo   [ERROR] task creation failed.
     pause
