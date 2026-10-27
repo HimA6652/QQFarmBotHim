@@ -28,6 +28,9 @@ tools/mitm-ca.cer
 *~
 .DS_Store
 
+__pycache__/
+*.pyc
+
 # 凭据与本地配置
 .env
 .env.*

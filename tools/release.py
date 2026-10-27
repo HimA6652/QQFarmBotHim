@@ -124,10 +124,11 @@ def main():
 
     # 7. 同步并推送 main
     print('[7/8] 同步到发布仓库…')
-    sync = run([PYTHON, 'tools/publish-to-github.py', '--yes'], DEV, check=False, timeout=1800)
-    print('    ' + '\n    '.join((sync.stdout or '').strip().splitlines()[-4:]))
+    # 直接继承 stdout/stderr：捕获子进程输出在 Windows 下会多一层编码转换，
+    # 且失败时看不到具体原因（此前两次都在此静默失败）。输出直通终端。
+    sync = subprocess.run([PYTHON, 'tools/publish-to-github.py', '--yes'], cwd=DEV, timeout=1800)
     if sync.returncode != 0:
-        fail('同步', 'publish-to-github.py 失败')
+        fail('同步', f'publish-to-github.py 退出码 {sync.returncode}')
 
     # 8. 打 tag 并推送
     print('[8/8] 打 tag 并推送…')
